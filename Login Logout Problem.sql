@@ -1,0 +1,51 @@
+CREATE TABLE user_activities (
+    user_id INT,
+    activity VARCHAR(10), -- Either 'Login' or 'Logout'
+    activity_time TIMESTAMP
+);
+
+
+INSERT INTO user_activities (user_id, activity, activity_time) VALUES
+(1, 'Login', '2024-01-01 08:00:00'),
+(1, 'Logout', '2024-01-01 12:00:00'),
+(1, 'Login', '2024-01-01 13:00:00'),
+(1, 'Logout', '2024-01-01 17:00:00'),
+(2, 'Login', '2024-01-01 09:00:00'),
+(2, 'Logout', '2024-01-01 11:00:00'),
+(2, 'Login', '2024-01-01 14:00:00'),
+(2, 'Logout', '2024-01-01 18:00:00'),
+(3, 'Login', '2024-01-01 08:30:00'),
+(3, 'Logout', '2024-01-01 12:30:00');
+
+
+SELECT * FROM user_activities
+
+
+-- Find out each users and productivity time in hour!
+-- productivity time = login - logout time
+
+WITH CTE1 AS
+(
+SELECT *,
+	  LAG(ACTIVITY_TIME)OVER(PARTITION BY USER_ID ORDER BY ACTIVITY_TIME)AS PREVIOUS_ACTIVITY_TIME,
+      LAG(ACTIVITY)OVER(PARTITION BY USER_ID ORDER BY ACTIVITY)AS PREVIOUS_ACTIVITY
+FROM USER_ACTIVITIES
+),
+CTE2 AS
+(
+SELECT USER_ID,
+	   PREVIOUS_ACTIVITY AS LOGIN,
+       PREVIOUS_ACTIVITY_TIME AS LOGIN_TIME,
+	   ACTIVITY AS LOGOUT,
+	   ACTIVITY_TIME AS LOGOUT_TIME,
+	   EXTRACT(EPOCH FROM (ACTIVITY_TIME - PREVIOUS_ACTIVITY_TIME))/3600 AS PRODUCTIVITY_HOUR
+FROM CTE1
+WHERE 
+PREVIOUS_ACTIVITY='Login'
+AND
+ACTIVITY='Logout')
+SELECT
+	USER_ID,
+	SUM(PRODUCTIVITY_HOUR)
+FROM CTE2
+GROUP BY USER_ID
